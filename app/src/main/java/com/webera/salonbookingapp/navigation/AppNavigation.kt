@@ -19,36 +19,47 @@ fun AppNavigation() {
 
         composable(Screen.Login.route) {
             LoginScreen(
-                onLoginClick = {
+                onSignupClick = {
+                    navController.navigate(Screen.Signup.route)
+                },
+                onAuthenticationSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) {
                             inclusive = true
                         }
+                        launchSingleTop = true
                     }
-                },
-                onSignupClick = {
-                    navController.navigate(Screen.Signup.route)
                 }
             )
         }
 
         composable(Screen.Signup.route) {
             SignupScreen(
-                onSignupClick = {
+                onLoginClick = {
+                    navController.popBackStack()
+                },
+                onAuthenticationSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) {
                             inclusive = true
                         }
+                        launchSingleTop = true
                     }
-                },
-                onLoginClick = {
-                    navController.popBackStack()
                 }
             )
         }
 
         composable(Screen.Home.route) {
-            HomeScreen()
+            HomeScreen(
+                onLogoutClick = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            )
         }
     }
 }
