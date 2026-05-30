@@ -1,4 +1,4 @@
-package com.example.salonbookingapp
+package com.webera.salonbookingapp
 
 import org.junit.Test
 

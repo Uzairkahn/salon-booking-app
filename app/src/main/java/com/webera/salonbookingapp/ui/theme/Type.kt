@@ -1,4 +1,4 @@
-package com.example.salonbookingapp.ui.theme
+package com.webera.salonbookingapp.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
