@@ -36,6 +36,8 @@ fun SignupScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
+    var validationError by remember { mutableStateOf<String?>(null) }
+
     val authState by authViewModel.authState.collectAsState()
 
     LaunchedEffect(authState.isAuthenticated) {
@@ -60,7 +62,10 @@ fun SignupScreen(
 
         CustomTextField(
             value = fullName,
-            onValueChange = { fullName = it },
+            onValueChange = {
+                fullName = it
+                validationError = null
+            },
             label = "Full Name"
         )
 
@@ -68,7 +73,10 @@ fun SignupScreen(
 
         CustomTextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = {
+                email = it
+                validationError = null
+            },
             label = "Email"
         )
 
@@ -76,7 +84,10 @@ fun SignupScreen(
 
         CustomTextField(
             value = phoneNumber,
-            onValueChange = { phoneNumber = it },
+            onValueChange = {
+                phoneNumber = it
+                validationError = null
+            },
             label = "Phone Number"
         )
 
@@ -84,7 +95,10 @@ fun SignupScreen(
 
         CustomTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = {
+                password = it
+                validationError = null
+            },
             label = "Password"
         )
 
@@ -92,17 +106,53 @@ fun SignupScreen(
 
         CustomTextField(
             value = confirmPassword,
-            onValueChange = { confirmPassword = it },
+            onValueChange = {
+                confirmPassword = it
+                validationError = null
+            },
             label = "Confirm Password"
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         PrimaryButton(
-            text = if (authState.isLoading) "Creating Account..." else "Sign Up",
+            text = if (authState.isLoading) {
+                "Creating Account..."
+            } else {
+                "Sign Up"
+            },
             onClick = {
+
+                validationError = when {
+                    fullName.isBlank() ->
+                        "Full Name is required."
+
+                    email.isBlank() ->
+                        "Email is required."
+
+                    phoneNumber.isBlank() ->
+                        "Phone Number is required."
+
+                    password.isBlank() ->
+                        "Password is required."
+
+                    confirmPassword.isBlank() ->
+                        "Confirm Password is required."
+
+                    password != confirmPassword ->
+                        "Passwords do not match."
+
+                    else -> null
+                }
+
+                if (validationError != null) {
+                    return@PrimaryButton
+                }
+
                 authViewModel.signup(
+                    fullName = fullName.trim(),
                     email = email.trim(),
+                    phoneNumber = phoneNumber.trim(),
                     password = password
                 )
             }
@@ -113,10 +163,20 @@ fun SignupScreen(
             CircularProgressIndicator()
         }
 
-        authState.errorMessage?.let { message ->
+        validationError?.let { error ->
             Spacer(modifier = Modifier.height(12.dp))
+
             Text(
-                text = message,
+                text = error,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        authState.errorMessage?.let { error ->
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = error,
                 color = MaterialTheme.colorScheme.error
             )
         }
@@ -126,7 +186,9 @@ fun SignupScreen(
         TextButton(
             onClick = onLoginClick
         ) {
-            Text(text = "Already have an account? Login")
+            Text(
+                text = "Already have an account? Login"
+            )
         }
     }
 }

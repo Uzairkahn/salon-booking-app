@@ -2,8 +2,11 @@ package com.webera.salonbookingapp.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseUser
+import com.webera.salonbookingapp.data.model.User
 import com.webera.salonbookingapp.data.repository.auth.AuthRepository
+import com.webera.salonbookingapp.data.repository.user.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +20,8 @@ data class AuthUiState(
 )
 
 class AuthViewModel(
-    private val authRepository: AuthRepository = AuthRepository()
+    private val authRepository: AuthRepository = AuthRepository(),
+    private val userRepository: UserRepository = UserRepository()
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow(
@@ -30,23 +34,61 @@ class AuthViewModel(
     val authState: StateFlow<AuthUiState> = _authState.asStateFlow()
 
     fun signup(
+        fullName: String,
         email: String,
+        phoneNumber: String,
         password: String
     ) {
         viewModelScope.launch {
+
             _authState.value = _authState.value.copy(
                 isLoading = true,
                 errorMessage = null
             )
 
-            val result = authRepository.signup(email, password)
+            val authResult = authRepository.signup(
+                email = email,
+                password = password
+            )
 
-            result.fold(
-                onSuccess = { user ->
-                    _authState.value = AuthUiState(
-                        isLoading = false,
-                        isAuthenticated = user != null,
-                        user = user
+            authResult.fold(
+                onSuccess = { firebaseUser ->
+
+                    val uid = firebaseUser?.uid
+
+                    if (uid.isNullOrBlank()) {
+                        _authState.value = AuthUiState(
+                            isLoading = false,
+                            errorMessage = "Failed to obtain user ID."
+                        )
+                        return@fold
+                    }
+
+                    val user = User(
+                        uid = uid,
+                        fullName = fullName,
+                        email = email,
+                        phoneNumber = phoneNumber,
+                        role = "user",
+                        createdAt = Timestamp.now()
+                    )
+
+                    val saveResult = userRepository.saveUser(user)
+
+                    saveResult.fold(
+                        onSuccess = {
+                            _authState.value = AuthUiState(
+                                isLoading = false,
+                                isAuthenticated = true,
+                                user = firebaseUser
+                            )
+                        },
+                        onFailure = { exception ->
+                            _authState.value = AuthUiState(
+                                isLoading = false,
+                                errorMessage = exception.message
+                            )
+                        }
                     )
                 },
                 onFailure = { exception ->
@@ -64,19 +106,23 @@ class AuthViewModel(
         password: String
     ) {
         viewModelScope.launch {
+
             _authState.value = _authState.value.copy(
                 isLoading = true,
                 errorMessage = null
             )
 
-            val result = authRepository.login(email, password)
+            val result = authRepository.login(
+                email = email,
+                password = password
+            )
 
             result.fold(
-                onSuccess = { user ->
+                onSuccess = { firebaseUser ->
                     _authState.value = AuthUiState(
                         isLoading = false,
-                        isAuthenticated = user != null,
-                        user = user
+                        isAuthenticated = firebaseUser != null,
+                        user = firebaseUser
                     )
                 },
                 onFailure = { exception ->
@@ -91,7 +137,6 @@ class AuthViewModel(
 
     fun logout() {
         authRepository.logout()
-
         _authState.value = AuthUiState()
     }
 
